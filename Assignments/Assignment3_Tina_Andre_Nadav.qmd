@@ -1,0 +1,100 @@
+---
+title: 'Assignment 3: Almond Yield Modeling'
+author: "Tina Tran, Andre Kapteyn, Nadav Kempinski"
+date: today
+date-format: "MMMM Do, YYYY"
+format: pdf
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+![Box diagram of almond yield calculations using meteorological data sources. This is a lumped deterministic model using physical inputs.](assignment3_diagram.png)
+
+## Implementation
+
+1. Relevant climate data was given to the team as `clim.txt` and was input into a dataframe
+2. The yield function was created to calculate yield anomaly data (tons/acre) for each year on the underlying data
+3. The resulting dataset was saved and is summarized. 
+
+### 1. Import climate data
+```{r, warning=FALSE, message=FALSE}
+# import from relative path data/clim.txt
+input_data = readr::read_delim(here::here("Data/clim.txt"))
+head(input_data, n=5)
+```
+
+#### Function Definitions
+Function definitions are included in the .qmd file but are not shown. You can find the function within the related .R file.  
+```{r, include=FALSE}
+# Load the tidyverse
+library(tidyverse)
+
+#' Almond Yield Anomaly Model
+#' Computes yield of a crop based on available metereological data and a specific model equation (currently hardcoded)
+#' @param data data frame which includes columns:
+#'  -- tmin_c: minimum temperature per day (deg-C)
+#'  -- precip: precipitation per day (mm)
+#' @author Tina, Andre, Nadav
+#' @return y yield of almonds (tons/acre) 
+calculate_yield = function(data) {
+  ### Pseudocode
+  # 1. Aggregate data from daily to monthly timescale
+  # 2. Get average February minimum temperature for each year
+  # 3. Collect average precipitation data for January for each year
+  # 4. Run model to get yield per year
+  # 5. Get summary table
+  
+  ## 1. Aggregate data from daily to monthly timescale
+  monthly_data = data |>
+    group_by(year, month) |>
+    summarize(tmin_mean = mean(tmin_c, na.rm=TRUE),
+              precip_mean = sum(precip, na.rm=TRUE))
+  
+  ## 2. Get Feb mins
+  feb_tmin = monthly_data |>
+    filter(month == 2) |> select(tmin_mean)
+
+  ## 3. Get Jan precip data
+  jan_precip = monthly_data |>
+    filter(month == 1) |> select(precip_mean)
+
+  # Merge the precipitation and the temperature data into a data frame
+  yearly_table = left_join(feb_tmin, jan_precip, by = "year")
+
+  ## 4. Run the yield calculations to get yield per year
+  yearly_table$yield = almond_yield(tmin_c = yearly_table$tmin_mean, precip = yearly_table$precip_mean)
+  
+  ## 5. Return a table of aggregated values and output
+  return(yearly_table)
+}
+
+#' Computes almond yield based on aggregated parameters into the calculate_yield function. Yield model from Lobell et al., 2006.
+#' @param tmin_c minimum temperature per day (deg-C)
+#' @param precip precipitation per day (mm)
+#' @return y yield of almonds (tons/acre) 
+almond_yield = function(tmin_c, precip) {
+  y = -0.015*tmin_c - 0.0046*tmin_c^2 - 0.07*precip + 0.0043*precip^2 + 0.28
+  return(y)
+}
+```
+
+
+```{r, warning=FALSE}
+# Calculate yield
+yield_anomaly = calculate_yield(input_data)
+
+# Confirm what we have with the first few rows
+head(yield_anomaly, n=5) 
+```
+
+### 3. Summarize the yield data
+```{r}
+# Print our summary statistics
+message = c(sprintf("Minimum yield anomaly: %f (tons/acre)", min(yield_anomaly$yield)),
+            sprintf("Mean yield anomaly: %f (tons/acre)", mean(yield_anomaly$yield)),
+            sprintf("Maximum yield anomaly: %f (tons/acre)", max(yield_anomaly$yield)))
+print(message)
+```
+
