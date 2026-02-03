@@ -98,7 +98,7 @@ eff <- rnorm(mean = 0.6, sd = 0.1, n = nsamples)
 
 # put samples together
 parms <- cbind.data.frame(eff, ethresh)
-
+head(parms)
 # use pmap
 # takes function name and then names of all parameters that don't change
 results <- parms %>% pmap(solarpv,
@@ -106,7 +106,7 @@ results <- parms %>% pmap(solarpv,
   solar = sierraczosolar, clr = "green",
   eunit = "kWhr", g = FALSE, etype = "direct"
 )
-
+View(results)
 results[[1]]
 length(results)
 
@@ -171,7 +171,7 @@ solar_annual_elect <- tmp %>% unnest(annual) %>% mutate(
   elect = as.numeric(elect),
   parm_id = parm_id
 )
- 
+head(solar_annual_elect)
 
 p1 = ggplot(solar_annual_elect, aes(year, elect, group = year)) +
   geom_boxplot() +
@@ -201,6 +201,7 @@ p3 = ggplot(solar_annual_elect2, aes(eff, elect, col=ethresh)) +
   geom_point() + facet_wrap(~year) +
   labs(y = "Electricity generated in kWHr", x = "Efficiency")
 p3
+
 
 # save this model output for next lecture
 save(solar_annual_elect, file = here("Data/annual_elect_solar.rda"))

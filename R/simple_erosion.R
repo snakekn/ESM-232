@@ -16,3 +16,6 @@ simple_erosion <- function(I, f, k = 4) {
 
   return(erosion)
 }
+
+f = rnorm(n=100,mean=5,sd=2)
+e = simple_erosion(5, f)
